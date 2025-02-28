@@ -50,9 +50,9 @@ def registerUser(request):
             user = form.save(commit = False) 
             user.username = user.username.lower() 
             user.save() 
-            messages.successs(request, 'User account created') 
+            messages.success(request, 'User account created') 
             login(request, user) 
-            return redirect('profiles')
+            return redirect('login')
         else:
             messages.error(request, 'An error has occurred during registration')
         
@@ -112,7 +112,7 @@ def updateSkill(request, pk):
     skill = profile.skill_set.get(id = pk)
     form = SkillForm()
     if request.method == 'POST':
-        form = SkillForm(request.POST, instance = skill))
+        form = SkillForm(request.POST, instance = skill)
         if form.is_valid():
             form.save()
             messages.success(request, 'Skill updated')

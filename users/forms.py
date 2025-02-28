@@ -2,7 +2,7 @@
 from django.forms import ModelForm 
 from django.contrib.auth.forms import UserCreationForm 
 from django.contrib.auth.models import User 
-from .models import Profile
+from .models import Profile, Skill
 
 class CustomUserCreationForm(UserCreationForm):
     class Meta:
@@ -12,8 +12,8 @@ class CustomUserCreationForm(UserCreationForm):
 
 class ProfileForm(ModelForm):
     class Meta:
-        model ='Profile' 
-        fields = ['name', 'username','location', 'email', 'short_intro', 'bio', 'profile_image', 'social_github', 'social_linkedin'] 
+        model =Profile
+        fields = ['name', 'username', 'email', 'short_intro', 'bio', 'profile_image', 'social_github', 'social_linkedin'] 
         
     def __init__(self, *args, **kwargs):
         super(ProfileForm, self).__init__(*args, **kwargs)
@@ -22,7 +22,7 @@ class ProfileForm(ModelForm):
 
 class SkillForm(ModelForm):
     class Meta:
-        model = 'Skill' 
+        model = Skill
         fields = '__all__' 
         exclude = ['owner']  
         
