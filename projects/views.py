@@ -1,10 +1,10 @@
-from django.shortcuts import render,redirect
+from django.shortcuts import render, redirect
 from django.http import HttpResponse 
 from .forms import ProjectForm
 from .models import Project
 from django.contrib.auth.decorators import login_required
+
 def projects(request):
-   
     return render(request, 'projects.html')
 # Create your views here.
 @login_required(login_url = 'login')
