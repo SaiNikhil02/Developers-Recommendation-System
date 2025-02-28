@@ -1,0 +1,1 @@
+<a href="{% url 'view_name' arg1 arg2 %}" >Link Text</a>
