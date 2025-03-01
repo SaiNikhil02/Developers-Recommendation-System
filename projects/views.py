@@ -1,22 +1,34 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse 
-from .forms import ProjectForm
-from .models import Project
+from .forms import ProjectForm, ReviewForm
+from .models import Project, Review, Tag
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
+from django.contrib import messages 
+from .utils import searchProjects
 
 def projects(request):
-    search_query = '' 
-    if request.GET.get('search_query'):
-        search_query = request.GET.get('search_query') 
-    projects = Project.objects.filter(
-        Q(title__icontains = search_query) |
-        Q(description__icontains = search_query) | 
-        Q(owner__name__icontains = search_query) 
-    )
-    
+    projects, search_query = searchProjects(request)
     context ={'projects':projects, 'search_query':search_query}
     return render(request, 'projects/projects.html', context)
+
+def project(request, pk):
+    projectObj = Project.objects.get(id=pk)
+    form = ReviewForm()
+
+    if request.method == 'POST':
+        form = ReviewForm(request.POST)
+        review = form.save(commit=False)
+        review.project = projectObj
+        review.owner = request.user.profile
+        review.save()
+        projectObj.getVoteCount  
+        
+        messages.success(request, 'Your review was successfully submitted!')
+        return redirect('project', pk=projectObj.id)
+
+    return render(request, 'projects/single-project.html', {'project': projectObj, 'form': form})
+
 # Create your views here.
 @login_required(login_url = 'login')
 def createProject(request):
@@ -29,7 +41,7 @@ def createProject(request):
             project = form.save(commit=False)
             project.owner = profile 
             project.save() 
-            return redirect('projects')
+            return redirect('account')
         
     context = {'form':form}
     return render(request, 'projects/project_form.html', context) 
