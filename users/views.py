@@ -5,11 +5,13 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages 
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required
-from .forms import CustomUserCreationForm, ProfileForm, SkillForm
+from django.db.models import Q
+from .forms import CustomUserCreationForm, ProfileForm, SkillForm 
+from .utils import searchProfiles
 # Create your views here.
 
 def loginUser(request):
-    page = 'register'
+    page = 'login'
     context = {'page': page} 
     if request.user.is_authenticated:
         return redirect('profiles')
@@ -63,9 +65,11 @@ def registerUser(request):
 
     
 def profiles(request):
-    profiles = Profile.objects.all()
-    context = {'profiles':profiles}
-    return render(request, 'users/profiles.html', context) 
+    profiles, search_query = context = searchProfiles(request)
+    context = {'profiles':profiles, 'search_query':search_query} 
+    return render(request, 'users/profiles.html', context)
+        
+        
 
 def userProfile(request, pk):
     return render(request, 'users/user-profile.html') 
@@ -76,7 +80,7 @@ def userAccount(request):
     skills  = profile.skill_set.all()  
     projects  = Profile.project_set.all()  
     context  = {'profile': profile, 'skills':skills, 'projects': projects}
-    return render(request,'users/account/html',context) 
+    return render(request,'users/account.html',context) 
 
 @login_required(login_url = 'login')
 def editAccount(request):
@@ -85,7 +89,7 @@ def editAccount(request):
          form = ProfileForm(request.POST, request.FILES, instance = request.user.profile)
          if form.is_valid():
              form.save() 
-             return redirect('account') 
+             return redirect('userAccount') 
          
          
      context  = {'form': form} 
