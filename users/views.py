@@ -1,42 +1,52 @@
 from django.shortcuts import render, redirect
-from .models import Profile, Skill
+from .models import Profile, Skill, Message
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages 
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .forms import CustomUserCreationForm, ProfileForm, SkillForm 
+from .forms import CustomUserCreationForm, ProfileForm, SkillForm, MessageForm
 from .utils import searchProfiles
 # Create your views here.
 
 def loginUser(request):
     page = 'login'
-    context = {'page': page} 
+    context = {'page': page}
+
     if request.user.is_authenticated:
         return redirect('profiles')
+
     if request.method == 'POST':
-        print(request.POST)
-        username = request.POST.get('username', '')
-        if username:
-            try:
-                user_obj = User.objects.get(username=username)
-                password = request.POST.get('password', '')
-                if password:
-                    user = authenticate(request, username=username, password=password)
-                    if user:
-                        login(request, user)
-                        return redirect('edit-account')
-                    else:
-                        messages.error(request, "Invalid password")
-                else:
-                    messages.error(request, "Please enter a password")
-            except User.DoesNotExist:
-                messages.error(request, "Invalid Username")
-        else:
+        print(request.POST)  # Debugging
+
+        username = request.POST.get('username', '').strip().lower()
+        password = request.POST.get('password', '').strip()
+
+        if not username:
             messages.error(request, 'Please enter a username')
-        
+            return render(request, 'users/login_register.html', context)
+
+        if not password:
+            messages.error(request, "Please enter a password")
+            return render(request, 'users/login_register.html', context)
+
+        # Use .filter().first() instead of try-except
+        user_obj = User.objects.filter(username=username).first()
+        if not user_obj:
+            messages.error(request, "Invalid Username")
+            return render(request, 'users/login_register.html', context)
+
+        user = authenticate(request, username=username, password=password)
+        if user:
+            login(request, user)
+            return redirect(request.GET.get('next', 'account'))  # Safer redirect
+        else:
+            messages.error(request, "Invalid password")
+
     return render(request, 'users/login_register.html', context)
+
+
 
 def logoutUser(request):
     logout(request) 
@@ -128,6 +138,7 @@ def updateSkill(request, pk):
     context = {'form': form}
     return render(request, 'users/skill_form.html', context)
 
+@login_required(login_url = 'login')
 def deleteSkill(request, pk):
     profile = request.user.profile 
     skill = profile.skill_set.get(id = pk)
@@ -137,4 +148,46 @@ def deleteSkill(request, pk):
         return redirect('account')
     context  = {'object': skill} 
     return render(request, 'delete_template.html', context)
+
+@login_required(login_url = 'login')
+def inbox(request):
+    profile = request.user.profile 
+    messageRequests = profile.messages.all() 
+    unreadCount = messageRequests.filter(is_read = False).count() 
+    context = {'messageRequests': messageRequests, 'unreadCount': unreadCount}
+    return render(request, 'users/inbox.html', context)
+    
+@login_required(login_url = 'login')
+def viewMessage(request, pk):
+    profile = request.user.profile
+    message = profile.messages.get(id = pk) 
+    if not message.is_read:
+        message.is_read = True 
+        message.save()
+    
+    context = {'message': message}
+    return render(request, 'users/message.html', context)
+    
+def createMessage(request, pk):
+    recipient = Profile.objects.get(id = pk) 
+    form = MessageForm() 
+    try:
+        sender =  request.user.profile 
+    except:
+        sender = None 
+    if request.method == 'POST':
+        form = MessageForm(request.POST) 
+        if form.is_valid():
+            message = form.save(commit = False) 
+            message.sender = sender 
+            message.recipient = recipient 
+            if sender:
+                message.name = sender.name 
+                message.email = sender.email 
+        
+            message.save()
+            messages.success(request, 'Your message was sucessfully sent')
+            return redirect('profiles', pk = recipient.id)
+    context = {'recipient': recipient, 'form': form} 
+    return render(request, 'users/message_form.html', context)
     
